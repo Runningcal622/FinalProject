@@ -3,17 +3,20 @@ var stateHCP = d3.csv("StateHateCrime2005.csv");
 var countyDataP = d3.json("countiesData.json");
 var countyHCP = d3.csv("byCityCounty.csv");
 var citiesP = d3.csv("USCitites.csv");
+var otherCitiesP = d3.csv("csvData.csv");
 
-Promise.all([stateP,stateHCP,countyDataP,countyHCP,citiesP]).then(function(data)
+Promise.all([stateP,stateHCP,countyDataP,countyHCP,citiesP,otherCitiesP]).then(function(data)
 {
   stateData = data[0];
   stateHC = data[1];
   countyData = data[2];
   countyHC = data[3];
   cities = data[4];
+  otherCities = data[5];
+  console.log(otherCities);
   numbersToStates = getNumberToStates(stateData);
   console.log(numbersToStates);
-  drawCountyMap(countyData,countyHC,cities,numbersToStates);
+  drawCountyMap(countyData,countyHC,cities,numbersToStates,otherCities);
 //  drawStateMap(stata,stateHC);
 })
 
@@ -29,7 +32,7 @@ var  getNumberToStates= function(countyData)
 
 
 
-var drawCountyMap = function(outline,dataInMap,cities,numbersToStates)
+var drawCountyMap = function(outline,dataInMap,cities,numbersToStates,otherCitites)
 {
   var width = 1500;
   var height = 800;
@@ -40,7 +43,7 @@ var drawCountyMap = function(outline,dataInMap,cities,numbersToStates)
   //console.log(dataInMap);
 
   //makeStateCountyTo(outline,)
-  giveCountiesData(outline,dataInMap,cities,numbersToStates);
+  giveCountiesData(outline,dataInMap,cities,numbersToStates,otherCities);
 
   var projection = d3.geoAlbersUsa()
                     .scale([width])
@@ -59,9 +62,9 @@ var drawCountyMap = function(outline,dataInMap,cities,numbersToStates)
         if (d.properties.race>0){
       return d3.interpolateReds(d.properties.race/100);
     }
-    // else {
-    //   return  d3.interpolateReds(0);
-    // }
+    else {
+      return  "gray";
+    }
     })
       .on("mouseover",function(d){
       });
@@ -80,23 +83,31 @@ var giveCountiesData = function(outline,dataInMap,cities,numbersToStates)
   }
   //make cityState map to countyState
   citiesStatesToCountyStates={};
+  otherCities.forEach(function(d)
+  {
+  //  console.log(d.City,d.County,d["State full"]);
+    citiesStatesToCountyStates[d.City+d["State full"]] = d.County.toLowerCase()+d["State full"];
+    citiesStatesToCountyStates[d["City alias"]+d["State full"]] = d.County.toLowerCase()+d["State full"];
+
+  })
+  console.log(cities);
   cities.forEach(function(d)
   {
-    citiesStatesToCountyStates[d.city+d.state_name] = d.county_name+d.state_name;
+  //  console.log(d.City,d.County,d["State full"]);
+    citiesStatesToCountyStates[d.city+d.state_name] = d.county_name.toLowerCase()+d.state_name;
+
   })
-  var pNames = Object.keys(citiesStatesToCountyStates);
-  console.log(pNames);
-  pnames.forEach(function(d){
-    if (d.includes("Juneau"))
-    {
-      console.log(d);
-    }
-  })
- //make countyState map to the actual drawn county
+
+
  var countyStatesToCounty={};
  outline.features.forEach(function(d)
 {
-  countyStatesToCounty[d.properties.NAME+d.properties.StateName] = d;
+  if (d.properties.NAME=="Pendleton")
+  {
+  //  console.log(d);
+  }
+  //console.log(d.properties.NAME+d.properties.StateName)
+  countyStatesToCounty[d.properties.NAME.toLowerCase()+d.properties.StateName] = d;
 })
   var curState="";
   var curSpecifier="";
@@ -122,7 +133,7 @@ var giveCountiesData = function(outline,dataInMap,cities,numbersToStates)
     if (d.specifier!="Cities" && curSpecifier=="Cities")
     {
       //get the county
-      var curCounty = countyStatesToCounty[citiesStatesToCountyStates[d.agency+curState]];
+      var curCounty = countyStatesToCounty[citiesStatesToCountyStates[d.agency.replace("Township","").trim().replace("2","").replace("3","")+curState]];
     //  console.log(d);
       if (curCounty!=undefined)
       {
@@ -133,11 +144,27 @@ var giveCountiesData = function(outline,dataInMap,cities,numbersToStates)
         curCounty.properties["race"] = curCounty.properties["race"]+parseInt(d.race);
       ///  console.log("curCounty",curCounty);
       }
+      else {
+        console.log(d.agency,curState);
+      }
+      // if (d.agency=="Juneau")
+      // {
+      //   console.log(d);
+      //   console.log(countyStatesToCounty[citiesStatesToCountyStates[d.agency+curState]]
+      //   .properties["race"] = 1000);
+      // }
     }
     if (d.specifier!="Counties" && curSpecifier=="Counties")
     {
       var curCounty = countyStatesToCounty[citiesStatesToCountyStates[d.agency+curState]];
     //  console.log(d);
+    // if (d.agency=="Maricopa")
+    // {
+    //   console.log(d);
+    //   console.log(countyStatesToCounty[citiesStatesToCountyStates[d.agency+curState]]
+    //   .properties["race"] = 1000);
+    // }
+
       if (curCounty!=undefined)
       {
         if (curCounty.properties["race"]==undefined)
@@ -146,6 +173,7 @@ var giveCountiesData = function(outline,dataInMap,cities,numbersToStates)
         }
         curCounty.properties["race"] = curCounty.properties["race"]+parseInt(d.race);
     }
+
 
   }
 })
