@@ -17,6 +17,7 @@ var otherCitiesP = d3.csv("csvData.csv");
 Promise.all([stateP,stateHCP,countyDataP,countyHCP,citiesP,otherCitiesP,countyHCP2,countyHCP3
   ,countyHCP4,countyHCP5,countyHCP6,countyHCP6,countyHCP7,countyHCP8,countyHCP9]).then(function(data)
 {
+  d3.select("body").append("text").attr("id","mode").text("1").style("opacity",0);
   stateData = data[0];
   stateHC = data[1];
   countyData = data[2];
@@ -43,9 +44,8 @@ Promise.all([stateP,stateHCP,countyDataP,countyHCP,citiesP,otherCitiesP,countyHC
   numbersToStates = getNumberToStates(stateData);
   console.log(numbersToStates);
   drawCountyMap(countyData,countyHC,cities,numbersToStates,otherCities,stateData);
-//  drawStateMap(stata,stateHC);
+//  drawStateMap(stateData,stateHC);
 })
-
 // creates object with the number of the state corresponding to the state name
 var  getNumberToStates= function(countyData)
 {
@@ -61,6 +61,43 @@ var goBack = function(year)
   console.log(year);
 }
 
+
+// uses the mode to tell whether it should draw states or counties
+var noCounties = function()
+{
+  var mode = d3.select("#mode").node().innerText;
+  console.log(mode);
+  if (mode==1)
+  {
+    d3.selectAll("#state")
+    .attr("fill",function(d){
+      d3.select("#mode").node().innerText=2;
+      return d3.interpolateReds(d.properties.race/1000);
+    })
+  }
+  else {
+    d3.select("#mode").node().innerText=1;
+    d3.selectAll("#state")
+    .attr("fill",function(d){
+      return "none";});
+    d3.selectAll("#county")
+    .attr("fill",function(d){
+    if (d.properties.race>0)
+    {
+      return "blue";
+    }
+    else if (d.properties.race==0){
+      return  "yellow";
+    }
+    else{
+      return "darkgray";
+    }
+      })
+    }
+
+}
+
+
 var drawCountyMap = function(outline,dataInMap,cities,numbersToStates,otherCitites,stateData)
 {
   var width = 1500;
@@ -73,7 +110,11 @@ var drawCountyMap = function(outline,dataInMap,cities,numbersToStates,otherCitit
   .text("All the years");
   yearSelector.append("button")
   .text("forward a year");
-
+  body.append("button")
+  .text("Click to change")
+  .on("click",function(){
+    noCounties();
+  })
   back.on("click",function(){goBack(yearSelector.contents);});
 
 
@@ -82,8 +123,11 @@ var drawCountyMap = function(outline,dataInMap,cities,numbersToStates,otherCitit
       .attr("height",height);
   //console.log(dataInMap);
 
+  var sToS = statesNamesToStates(stateData);
+
+
   //makeStateCountyTo(outline,)
-  giveCountiesData(outline,dataInMap,cities,numbersToStates,otherCities);
+  giveCountiesData(outline,dataInMap,cities,numbersToStates,otherCities,sToS);
 
   var projection = d3.geoAlbersUsa()
                     .scale([width])
@@ -96,7 +140,8 @@ var drawCountyMap = function(outline,dataInMap,cities,numbersToStates,otherCitit
       .enter()
       .append("path")
       .attr("d",countyGenerator)
-      .attr("stroke","brown")
+      .attr("id","county")
+      .attr("stroke","none")
       .attr("fill",function(d)
     {
         if (d.properties.race>0){
@@ -110,6 +155,17 @@ var drawCountyMap = function(outline,dataInMap,cities,numbersToStates,otherCitit
     }
     })
       .on("mouseover",function(d){
+        theState = sToS[d.properties.StateName]
+        svg.append("text")
+          .attr("transform","translate("+(countyGenerator.centroid(theState)[0]-.05*countyGenerator.measure(theState))+","+countyGenerator.centroid(theState)[1]+")")
+          .text(theState.properties.race)
+          .style("font-size",40)
+          .style("color", "red");
+
+      })
+      .on("mouseout",function(d){
+        svg.select("text")
+          .remove();
       });
 
       states = svg.append("g").selectAll("g")
@@ -118,13 +174,38 @@ var drawCountyMap = function(outline,dataInMap,cities,numbersToStates,otherCitit
           .append("path")
           .attr("d",countyGenerator)
           .attr("stroke","black")
-          .attr("fill","none");
+          .attr("id","state")
+          .attr("stroke-width",2)
+          .attr("fill","none")
+          .on("mouseover",function(d){
+            //console.log(d.properties.IncidentsNom);
+            svg.append("text")
+              .attr("transform","translate("+countyGenerator.centroid(d)[0]+","+countyGenerator.centroid(d)[1]+")")
+              .text(d.properties.race);
+          })
+          .on("mouseout",function(d){
+            svg.select("text")
+              .remove();
+          });
+}
+
+
+/// make dictionary of statenames to state objects
+var statesNamesToStates = function(stateData)
+{
+  console.log("stateData",stateData);
+  sToS={};
+  stateData.features.forEach(function(d)
+{
+  sToS[d.properties.NAME] = d;
+})
+console.log(sToS);
+return sToS;
 }
 
 
 
-
-var giveCountiesData = function(outline,dataInMap,cities,numbersToStates)
+var giveCountiesData = function(outline,dataInMap,cities,numbersToStates,otherCities,sToS)
 {
   counties = {};
   for (var i=0;i<outline.features.length;i++)
@@ -154,12 +235,6 @@ var giveCountiesData = function(outline,dataInMap,cities,numbersToStates)
       console.log(d.City+d["State full"]);//County.toLowerCase().replace(" city","").trim()+d["State full"]);
     }
   })
-  //console.log(cities);
-
-
-  //form list of cities found on not github
-
-
 
  var countyStatesToCounty={};
  outline.features.forEach(function(d)
@@ -204,13 +279,22 @@ console.log(citiesStatesToCountyStates["Virginia BeachVirginia"])
       //get the county
       var curCounty = countyStatesToCounty[citiesStatesToCountyStates[d.agency.replace("Township","TWP").replace("Town","TWP").trim().replace("2","").replace("3","")+curState]];
     //  console.log(d);
+  //  console.log(curCounty)
       if (curCounty!=undefined)
       {
+        //console.log(curState);
+        stateObj = sToS[curState];
+        //console.log(sToS);
         if (curCounty.properties["race"]==undefined)
         {
           curCounty.properties["race"]=0;
         }
+        if (stateObj.properties["race"]==undefined)
+        {
+          stateObj.properties["race"]=0;
+        }
         curCounty.properties["race"] = curCounty.properties["race"]+parseInt(d.race);
+        stateObj.properties["race"] = stateObj.properties["race"]+parseInt(d.race);
       ///  console.log("curCounty",curCounty);
       }
       else {
@@ -230,24 +314,12 @@ console.log(citiesStatesToCountyStates["Virginia BeachVirginia"])
         //  console.log("no",d.agency+curState);
         }
         }
-      }
-      // if (d.agency=="Juneau")
-      // {
-      //   console.log(d);
-      //   console.log(countyStatesToCounty[citiesStatesToCountyStates[d.agency+curState]]
-      //   .properties["race"] = 1000);
-      // }
+}
     }
     if (d.specifier!="Nonmetropolitan Counties" && d.specifier!="metropolitan Counties" && curSpecifier=="Counties" && d.State=="")
     {
       var curCounty = countyStatesToCounty[d.agency.toLowerCase().replace(" county police department")+curState];
-    //  console.log(d);
-    // if (d.agency=="Maricopa")
-    // {
-    //   console.log(d);
-    //   console.log(countyStatesToCounty[citiesStatesToCountyStates[d.agency+curState]]
-    //   .properties["race"] = 1000);
-    // }
+
 
       if (curCounty!=undefined)
       {
@@ -261,13 +333,6 @@ console.log(citiesStatesToCountyStates["Virginia BeachVirginia"])
     else {
       //console.log(countyStatesToCounty["county not found",d.agency.toLowerCase().replace("county police department","").trim()+curState]);
       var curCounty = countyStatesToCounty[d.agency.toLowerCase().replace(" county police department")+curState];
-    //  console.log(d);
-    // if (d.agency=="Maricopa")
-    // {
-    //   console.log(d);
-    //   console.log(countyStatesToCounty[citiesStatesToCountyStates[d.agency+curState]]
-    //   .properties["race"] = 1000);
-    // }
 
       if (curCounty!=undefined)
       {
