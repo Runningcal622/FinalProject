@@ -56,6 +56,8 @@ var  getNumberToStates= function(countyData)
   return nStates;
 }
 
+
+
 var updateMap = function(direction)
 {
   // get the year that is being showed currently
@@ -63,7 +65,7 @@ var updateMap = function(direction)
   //console.log(myYear);
   var newYear = myYear;
   var isAll = false;
-  if (myYear=="All the years")
+  if (myYear=="All years")
   {
       isAll = true;
   }
@@ -81,8 +83,8 @@ var updateMap = function(direction)
 
     }
     else {
-      d3.select("#theYear").node().innerText = "All the years";
-      newYear = "All the years";
+      d3.select("#theYear").node().innerText = "All years";
+      newYear = "All years";
     }
   }
   else if (direction=="back")
@@ -97,20 +99,24 @@ var updateMap = function(direction)
       d3.select("#theYear").node().innerText = newYear;
     }
     else {
-      d3.select("#theYear").node().innerText = "All the years";
-      newYear = "All the years";
+      d3.select("#theYear").node().innerText = "All years";
+      newYear = "All years";
     }
   }
 
-  reDraw(newYear);
+  reDraw();
 
 }
 
-var reDraw = function(newYear)
+
+
+var reDraw = function()
 {
+  var newYear =  d3.select(".yearS").select("select").node().value;
   var states = d3.selectAll("#state");
   var counties = d3.selectAll("#county");
-
+  var curOption = d3.select(".hateType").select("select").node().value;//.selectedOptions.innerText;
+  //console.log("current",curOption);
   var width = 1500;
 
   var projection = d3.geoAlbersUsa()
@@ -119,28 +125,28 @@ var reDraw = function(newYear)
 
   var countyGenerator = d3.geoPath().projection(projection);
 
-  if (newYear=="All the years")
+  if (newYear=="All years")
   {
-    counties
+    counties.transition()
     .attr("fill",function(d)
   {
-      if (d.properties.race>0){
+      if (d.properties[curOption]>0){
     return "blue";
   }
-  else if (d.properties.race==0){
+  else if (d.properties[curOption]==0){
     return  "yellow";
   }
   else{
     return "darkgray";
   }
-  })
+});
+counties
     .on("mouseover",function(d){
       theState = sToS[d.properties.StateName]
       d3.select("svg").append("text")
       .attr("x",(countyGenerator.centroid(theState)[0]-.05*countyGenerator.measure(theState)))
       .attr("y",countyGenerator.centroid(theState)[1])
-        //.attr("transform","translate("+(countyGenerator.centroid(theState)[0]-.05*countyGenerator.measure(theState))+","+countyGenerator.centroid(theState)[1]+")")
-        .text(theState.properties.race)
+        .text(theState.properties[curOption])
         .style("font-size",40)
         .attr("id","numText");
 
@@ -150,33 +156,34 @@ var reDraw = function(newYear)
         .remove();
     });
 
-    states
+    states.transition()
     .attr("stroke",function(d){
-      return d3.interpolateReds(d.properties.race/1000);
+      return d3.interpolateReds(d.properties[curOption]/1000);
     })
 
   }
   else {
-    counties
+    counties.transition()
     .attr("fill",function(d)
   {
-      if (d.properties["race"+newYear]>0){
+      if (d.properties[curOption+newYear]>0){
     return "blue";
   }
-  else if (d.properties["race"+newYear]==0){
+  else if (d.properties[curOption+newYear]==0){
     return  "yellow";
   }
   else{
     return "darkgray";
   }
-  })
+});
+counties
     .on("mouseover",function(d){
       theState = sToS[d.properties.StateName]
       d3.select("svg").append("text")
       .attr("x",(countyGenerator.centroid(theState)[0]-.05*countyGenerator.measure(theState)))
       .attr("y",countyGenerator.centroid(theState)[1])
         //.attr("transform","translate("+(countyGenerator.centroid(theState)[0]-.05*countyGenerator.measure(theState))+","+countyGenerator.centroid(theState)[1]+")")
-        .text(theState.properties["race"+newYear])
+        .text(theState.properties[curOption+newYear])
         .style("font-size",40)
         .attr("id","numText");
 
@@ -186,55 +193,33 @@ var reDraw = function(newYear)
         .remove();
     });
 
-    states
+    states.transition()
     .attr("stroke",function(d){
-      if (d.properties["race"+newYear]==undefined)
+      if (d.properties[curOption+newYear]==undefined)
       {
         return "lightblack";
       }
-      return d3.interpolateReds(d.properties["race"+newYear]/100);
+      return d3.interpolateReds(d.properties[curOption+newYear]/100);
     })
   }
 
-
-
-
 }
 
-// uses the mode to tell whether it should draw states or counties
-// var noCounties = function()
-// {
-//   var mode = d3.select("#mode").node().innerText;
-//   console.log(mode);
-//   if (mode==1)
-//   {
-//     d3.selectAll("#state")
-//     .attr("fill",function(d){
-//       d3.select("#mode").node().innerText=2;
-//       return d3.interpolateReds(d.properties.race/1000);
-//     })
-//   }
-//   else {
-//     d3.select("#mode").node().innerText=1;
-//     d3.selectAll("#state")
-//     .attr("fill",function(d){
-//       return "none";});
-//     d3.selectAll("#county")
-//     .attr("fill",function(d){
-//     if (d.properties.race>0)
-//     {
-//       return "blue";
-//     }
-//     else if (d.properties.race==0){
-//       return  "yellow";
-//     }
-//     else{
-//       return "darkgray";
-//     }
-//       })
-//     }
-//
-// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 var drawCountyMap = function(outline,dataInMap,cities,numbersToStates,otherCitites,stateData)
@@ -242,29 +227,44 @@ var drawCountyMap = function(outline,dataInMap,cities,numbersToStates,otherCitit
   var width = 1500;
   var height = 800;
   var body = d3.select("body");
-  var yearSelector = body.append("g").classed("yearS",true);
+  var selectionArea = body.append("g").classed("selectArea",true);
+  var yearSelector = selectionArea.append("g").classed("yearS",true);
+  var typeOfHate = selectionArea.append("g").classed("hateType",true);
   body.append("text").attr("id","title").text("Counties by Reporting Status");
 
 
-  var back = yearSelector.append("button")
-  .text("Back a year")
-  .on("click",function(){updateMap("back");});
+  var hates = ["race","religion","sexualOrientation","disability","gender"];
+  var posYears = ["All years",2007,2008,2009,2010,2011,2012,2013,2014,2015];
+  typeOfHate.append("text").text("Hate Category");
+  typeOfHate.append("select")
+          .on("change",function(){reDraw();});
 
-  yearSelector.append("text")
-  .text("All the years")
-  .attr("id","theYear");
+  typeOfHate.select("select")
+  .selectAll("option")
+  .data(hates)
+  .enter()
+  .append("option")
+  .text(function(d){
+    return d;})
+    .attr("value",function(d){
+      return d;});
 
+  yearSelector.append("text").text("Year");
 
-  yearSelector.append("button")
-  .text("forward a year")
-  .on("click",function(){updateMap("forward");});
+  yearSelector.append("select")
+          .on("change",function(){reDraw();});
 
-  // body.append("button")
-  // .text("Click to change")
-  // .on("click",function(){
-  //   noCounties();
-  // })
-
+  yearSelector.select("select")
+  .selectAll("option")
+  .data(posYears)
+  .enter()
+  .append("option")
+  .text(function(d){
+    console.log(d);
+    return d;})
+    .attr("value",function(d){
+      console.log(d);
+      return d;});
 
   var svg = body.append("svg")
       .attr("width",width)
@@ -327,7 +327,7 @@ var drawCountyMap = function(outline,dataInMap,cities,numbersToStates,otherCitit
             return d3.interpolateReds(d.properties.race/1000);
           })
           .attr("id","state")
-          .attr("stroke-width",2)
+          .attr("stroke-width",3)
           .attr("fill","none")
           .on("mouseover",function(d){
             //console.log(d.properties.IncidentsNom);
@@ -341,8 +341,17 @@ var drawCountyMap = function(outline,dataInMap,cities,numbersToStates,otherCitit
               .remove();
           });
 }
-
-
+// var zoom = d3.behavior.zoom()
+//     .translate([0, 0])
+//     .scale(1)
+//     .scaleExtent([1, 8])
+//     .on("zoom", zoomed);
+//
+// var zoomed = function() {
+//   features.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+//   features.select(".state-border").style("stroke-width", 1.5 / d3.event.scale + "px");
+//   features.select(".county-border").style("stroke-width", .5 / d3.event.scale + "px");
+// }
 /// make dictionary of statenames to state objects
 var statesNamesToStates = function(stateData)
 {
@@ -382,11 +391,6 @@ var giveCountiesData = function(outline,dataInMap,cities,numbersToStates,otherCi
   //  console.log(d.City,d.County,d["State full"]);
     citiesStatesToCountyStates[d.City+d["State full"]] = d.County.toLowerCase().replace(" city","").trim()+d["State full"];
     citiesStatesToCountyStates[d["City alias"]+d["State full"]] = d.County.toLowerCase().replace(" city","").trim()+d["State full"];
-
-    if (d.City=="Virginia Beach")
-    {
-      console.log(d.City+d["State full"]);//County.toLowerCase().replace(" city","").trim()+d["State full"]);
-    }
   })
 
  var countyStatesToCounty={};
@@ -445,89 +449,46 @@ console.log(citiesStatesToCountyStates["Virginia BeachVirginia"])
         //console.log(curState);
         stateObj = sToS[curState];
         //console.log(sToS);
-        if (curCounty.properties["race"+curYear]==undefined)
-        {
-          curCounty.properties["race"+curYear]=0;
-        }
-        if (stateObj.properties["race"+curYear]==undefined)
-        {
-          stateObj.properties["race"+curYear]=0;
-        }
-        curCounty.properties["race"+curYear] = curCounty.properties["race"+curYear]+parseInt(d.race);
-        stateObj.properties["race"+curYear] = stateObj.properties["race"+curYear]+parseInt(d.race);
+        addIfPossible(curState,curYear,d,curCounty,stateObj);
+
+
       ///  console.log("curCounty",curCounty);
       }
-      else {
-        var curCounty = countyStatesToCounty[citiesStatesToCountyStates[d.agency.replace("Township","TWP").trim().replace("2","").replace("3","").toLowerCase()+curState]];
-        if (curCounty!=undefined)
-        {
-          if (curCounty.properties["race"+curYear]==undefined)
-          {
-            curCounty.properties["race"+curYear]=0;
-          }
-          curCounty.properties["race"+curYear] = curCounty.properties["race"+curYear]+parseInt(d.race);
-        ///  console.log("curCounty",curCounty);
-        }
-        else {
-          if (!d.agency.includes("Township"))
-          {
-        //  console.log("no",d.agency+curState);
-        }
-        }
-}
     }
     if (d.specifier!="Nonmetropolitan Counties" && d.specifier!="metropolitan Counties" && curSpecifier=="Counties" && d.State=="")
     {
       var curCounty = countyStatesToCounty[d.agency.toLowerCase().replace(" county police department")+curState];
-
-
       if (curCounty!=undefined)
       {
       //  console.log("county found");
-        if (curCounty.properties["race"+curYear]==undefined)
-        {
-          curCounty.properties["race"+curYear]=0;
-        }
-        curCounty.properties["race"+curYear] = curCounty.properties["race"+curYear]+parseInt(d.race);
-    }
-    else {
-      //console.log(countyStatesToCounty["county not found",d.agency.toLowerCase().replace("county police department","").trim()+curState]);
-      var curCounty = countyStatesToCounty[d.agency.toLowerCase().replace(" county police department")+curState];
-
-      if (curCounty!=undefined)
-      {
-      //  console.log("county found");
-        if (curCounty.properties["race"+curYear]==undefined)
-        {
-          curCounty.properties["race"+curYear]=0;
-        }
-        curCounty.properties["race"+curYear] = curCounty.properties["race"+curYear]+parseInt(d.race);
-    }
-    else {
-    //  console.log("give up");
-    }
+      stateObj = sToS[curState];
+      addIfPossible(curState,curYear,d,curCounty,stateObj);
     }
 
 
   }
 })
+var selectors = ["race","religion","sexualOrientation","disability","gender"];
+
 outline.features.forEach(function(d){
 
+  selectors.forEach(function(selector){
   var tot=undefined;
-  for (var num=2007;num<2016;num++)
-  {
-    var curYearNum = d.properties["race"+num];
-    if (!isNaN(curYearNum) && tot!=undefined)
+    for (var num=2007;num<2016;num++)
     {
-      tot+=curYearNum;
-    }
-    if (!isNaN(curYearNum) && tot==undefined)
-    {
-      tot=curYearNum;
-    }
+      var curYearNum = d.properties[selector+num];
+      if (!isNaN(curYearNum) && tot!=undefined)
+      {
+        tot+=curYearNum;
+      }
+      if (!isNaN(curYearNum) && tot==undefined)
+      {
+        tot=curYearNum;
+      }
 
-  }
-  d.properties.race = tot;
+    }
+    d.properties[selector] = tot;
+  })
   // isNan(d.properties.race2006) + d.properties.race2007 + d.properties.race2008 + d.properties.race2009
   // + d.properties.race2010 + d.properties.race2011 + d.properties.race2012 + d.properties.race2013 +d.properties.race2014
   // + d.properties.race2015;
@@ -535,11 +496,11 @@ outline.features.forEach(function(d){
 })
 
 stateData.features.forEach(function(d){
-
+  selectors.forEach(function(selector){
   var tot=undefined;
   for (var num=2007;num<2016;num++)
   {
-    var curYearNum = d.properties["race"+num];
+    var curYearNum = d.properties[selector+num];
     if (!isNaN(curYearNum) && tot!=undefined)
     {
       tot+=curYearNum;
@@ -550,7 +511,8 @@ stateData.features.forEach(function(d){
     }
 
   }
-  d.properties.race = tot;
+  d.properties[selector] = tot;
+})
   // isNan(d.properties.race2006) + d.properties.race2007 + d.properties.race2008 + d.properties.race2009
   // + d.properties.race2010 + d.properties.race2011 + d.properties.race2012 + d.properties.race2013 +d.properties.race2014
   // + d.properties.race2015;
@@ -558,6 +520,30 @@ stateData.features.forEach(function(d){
 })
 
 }
+
+
+var addIfPossible = function(curState,curYear,d,curCounty,stateObj)
+{
+  var selectors = ["race","religion","sexualOrientation","disability","gender"];
+  selectors.forEach(function(selectName){
+    if (curCounty.properties[selectName+curYear]==undefined)
+    {
+      curCounty.properties[selectName+curYear]=0;
+    }
+    if (stateObj.properties[selectName+curYear]==undefined)
+    {
+      stateObj.properties[selectName+curYear]=0;
+    }
+    //console.log(stateObj);
+    curCounty.properties[selectName+curYear] = curCounty.properties[selectName+curYear]+parseInt(d[selectName]);
+    stateObj.properties[selectName+curYear] = stateObj.properties[selectName+curYear]+parseInt(d[selectName]);
+
+  })
+
+}
+
+
+
 
 
 var drawStateMap = function(outline,dataInMap)
