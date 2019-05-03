@@ -235,7 +235,7 @@ var drawCountyMap = function(outline,dataInMap,cities,numbersToStates,otherCitit
 
   var hates = ["race","religion","sexualOrientation","disability","gender"];
   var posYears = ["All years",2007,2008,2009,2010,2011,2012,2013,2014,2015];
-  typeOfHate.append("text").text("Hate Category");
+  typeOfHate.append("text").text("Hate Category: ");
   typeOfHate.append("select")
           .on("change",function(){reDraw();});
 
@@ -249,7 +249,7 @@ var drawCountyMap = function(outline,dataInMap,cities,numbersToStates,otherCitit
     .attr("value",function(d){
       return d;});
 
-  yearSelector.append("text").text("Year");
+  yearSelector.append("text").text("Year: ");
 
   yearSelector.append("select")
           .on("change",function(){reDraw();});
