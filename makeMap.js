@@ -331,10 +331,10 @@ var drawCountyMap = function(outline,dataInMap,cities,numbersToStates,otherCitit
           .attr("fill","none")
           .on("mouseover",function(d){
             //console.log(d.properties.IncidentsNom);
-            svg.append("text")
-              .attr("transform","translate("+countyGenerator.centroid(d)[0]+","+countyGenerator.centroid(d)[1]+")")
-              .text(d.properties.race)
-              .attr("id","numText");
+            // svg.append("text")
+            //   .attr("transform","translate("+countyGenerator.centroid(d)[0]+","+countyGenerator.centroid(d)[1]+")")
+            //   .text(d.properties.race)
+            //   .attr("id","numText");
           })
           .on("mouseout",function(d){
             svg.select("text")
