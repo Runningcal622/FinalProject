@@ -42,7 +42,7 @@ Promise.all([stateP,stateHCP,countyDataP,countyHCP,citiesP,otherCitiesP,countyHC
 
   numbersToStates = getNumberToStates(stateData);
   //console.log(numbersToStates);
-  drawCountyMap(countyData,countyHC,cities,numbersToStates,otherCities,stateData);
+  drawCountyMap(countyData,countyHC,cities,numbersToStates,otherCities,stateData,stateHC);
 })
 
 // creates object with the number of the state corresponding to the state name
@@ -152,7 +152,7 @@ counties
 
     states.transition()
     .attr("stroke",function(d){
-      return d3.interpolateReds(d.properties[curOption]/1000);
+      return d3.interpolateReds((d.properties[curOption]/d.properties.pop)*4000);
     })
 
   }
@@ -193,7 +193,7 @@ counties
       {
         return "lightblack";
       }
-      return d3.interpolateReds(d.properties[curOption+newYear]/100);
+      return d3.interpolateReds((d.properties[curOption+newYear]/d.properties.pop)*4000);
     })
   }
 
@@ -207,7 +207,7 @@ counties
 
 
 
-var drawCountyMap = function(outline,dataInMap,cities,numbersToStates,otherCitites,stateData)
+var drawCountyMap = function(outline,dataInMap,cities,numbersToStates,otherCitites,stateData,stateHC)
 {
   var width = 1500;
   var height = 800;
@@ -252,42 +252,118 @@ var drawCountyMap = function(outline,dataInMap,cities,numbersToStates,otherCitit
       return d;});
 
   var svg = body.append("svg")
-      .attr("width",width)
+      .attr("width",width+100)
       .attr("height",height);
 
-  var legendRectWidth = 15;
+//make a legend
 
-  var legend = svg.append("g").classed("legend",true)
-  var report = legend.append("g")
+  var legendRectWidth = 25;
+
+  var report = svg.append("g")
           .classed("reporting",true);
-  var rate = legend.append("g")
+  var rate = svg.append("g")
           .classed("rate",true);
 
   report.append("rect")
-        .attr("y",1)
+  .attr("x",1300)
+        .attr("y",301)
         .attr("width",legendRectWidth)
         .attr("height",legendRectWidth)
         .attr("fill","blue");
   report.append("text")
-  .attr("x",20)
-        .attr("y",15)
-        .text("Reported")
+  .attr("x",1335)
+        .attr("y",318)
+        .text("Reported 1 or More").attr("z-index",1);
 
   report.append("rect")
-  .attr("y",25)
+  .attr("y",331)
+  .attr("x",1300)
         .attr("width",legendRectWidth)
         .attr("height",legendRectWidth)
         .attr("fill","yellow");
 
+  report.append("text")
+  .attr("x",1335)
+        .attr("y",350)
+        .text("Reported 0").attr("z-index",1);
+
   report.append("rect")
-  .attr("y",45)
+  .attr("y",361)
+  .attr("x",1300)
         .attr("width",legendRectWidth)
         .attr("height",legendRectWidth)
         .attr("fill","darkgray");
 
-  report.attr("transform","translate(1800,300)")
+  report.append("text")
+  .attr("x",1335)
+        .attr("y",380)
+        .text("Never reported in year(s)").attr("z-index",1);
+
+    var grad = [];
+    for (var color=0;color<100;color++)
+    {
+      grad.push({theColor:d3.interpolateReds(color*.01),theVal:color*.01});
+    }
+    console.log(grad);
+
+    var linearGradient = svg.append("defs")
+            .append("linearGradient")
+            .attr("id", "linear-gradient")
+            .attr("x1", "0%")
+    .attr("y1", "0%")
+    .attr("x2", "100%")
+    .attr("y2", "0%");;
+
+    linearGradient.selectAll("stop")
+      .data(grad)
+      .enter()
+      .append("stop")
+      .attr("offset",function(d){
+        return (d.theVal*100)+"%";
+      })
+      .attr("stop-color",function(d){return d.theColor;});
+
+    svg.append("rect")
+            .attr("x", 1300)
+            .attr("y", 500)
+            .attr("stroke","black")
+            .attr("width", 200)
+            .attr("height", 50)
+            .style("fill", "url(#linear-gradient)");
+    svg.append("text")
+            .attr("x", 1300)
+            .attr("y", 570)
+            .text("0");
+
+    svg.append("text")
+            .attr("x", 1495)
+            .attr("y", 570)
+            .text("1");
+
+    svg.append("text")
+            .attr("x", 1295)
+            .attr("y", 590)
+            .text("Total Hate crimes per 4000 people");
+
+
+
+  svg.append("text")
 
   var sToS = statesNamesToStates(stateData);
+
+  stateHC.forEach(function(d){
+    var curState = sToS[d.State];
+    if (curState!=undefined)
+    {
+      console.log("yes");
+      var pop = d.Population;
+      while (pop.includes(","))
+      {
+        pop= pop.replace(",","");
+      }
+    curState.properties.pop = parseInt(pop);
+  }
+  })
 
 
   //makeStateCountyTo(outline,)
@@ -340,7 +416,7 @@ var drawCountyMap = function(outline,dataInMap,cities,numbersToStates,otherCitit
           .append("path")
           .attr("d",countyGenerator)
           .attr("stroke",function(d){
-            return d3.interpolateReds(d.properties.race/1000);
+            return d3.interpolateReds((d.properties.race/d.properties.pop)*4000);
           })
           .attr("id","state")
           .attr("stroke-width",3)
