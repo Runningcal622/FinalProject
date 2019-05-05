@@ -183,7 +183,7 @@ counties
 
     })
     .on("mouseout",function(d){
-      d3.select("svg").select("numText")
+      d3.select("svg").select("#numText")
         .remove();
     });
 
